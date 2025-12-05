@@ -1,0 +1,135 @@
+# ----------------------------------------
+# OS
+# ----------------------------------------
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# ----------------------------------------
+# Logs
+# ----------------------------------------
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ----------------------------------------
+# Node / JavaScript
+# ----------------------------------------
+node_modules/
+dist/
+build/
+.cache/
+.npm/
+.pnp/
+.pnp.js
+
+# ----------------------------------------
+# Python
+# ----------------------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+env/
+venv/
+.venv/
+
+# Pip
+*.egg-info/
+.eggs/
+
+# ----------------------------------------
+# Flutter / Dart
+# ----------------------------------------
+.dart_tool/
+.packages
+.pub-cache/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Android (si Flutter Android)
+android/app/debug.keystore
+
+# ----------------------------------------
+# IDE & Editors
+# ----------------------------------------
+# VS Code
+.vscode/
+.history/
+
+# JetBrains
+.idea/
+*.iml
+
+# ----------------------------------------
+# Environment & keys
+# ----------------------------------------
+.env
+.env.*
+*.key
+*.pem
+*.crt
+secret/
+secrets/
+config/local.json
+
+# ----------------------------------------
+# Temporary files
+# ----------------------------------------
+tmp/
+temp/
+*.tmp
+*.swp
+*.swo
+
+# ----------------------------------------
+# Machine Learning / Data
+# ----------------------------------------
+*.h5
+*.hdf5
+*.pkl
+*.pt
+*.onnx
+*.ckpt
+checkpoints/
+runs/
+wandb/
+mlruns/
+
+# Datasets
+*.csv
+*.tsv
+*.jsonl
+data/
+datasets/
+
+# Large media
+*.wav
+*.mp3
+*.mp4
+*.avi
+*.zip
+*.tar
+*.tar.gz
+*.7z
+
+# ----------------------------------------
+# Jupyter Notebook
+# ----------------------------------------
+.ipynb_checkpoints/
+
+# ----------------------------------------
+# Others
+# ----------------------------------------
+coverage/

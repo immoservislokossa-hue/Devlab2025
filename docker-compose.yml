@@ -1,0 +1,109 @@
+version: '3.7'
+networks:
+  ml-sdk-ttk-net:
+    driver: bridge
+
+services:
+
+  ml-testing-toolkit:
+    networks:
+      ml-sdk-ttk-net:
+        aliases:
+          - ttkhubsim
+    image: mojaloop/ml-testing-toolkit:latest
+    command: npm start
+    volumes:
+      - "./configs/ttk/spec_files:/opt/app/spec_files"
+    ports:
+      - "4040:4040"
+      - "5050:5050"
+    environment:
+      - AUTH_ENABLED=FALSE
+      - NODE_OPTIONS=--max-old-space-size=4096
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "localhost:host-gateway"
+    healthcheck:
+      test: ["CMD", "sh", "-c", "nc -z localhost 4040 && nc -z localhost 5050"]
+      timeout: 20s
+      retries: 10
+      start_period: 40s
+      interval: 30s
+
+  ml-testing-toolkit-ui:
+    image: mojaloop/ml-testing-toolkit-ui:latest
+    networks:
+      - ml-sdk-ttk-net
+    ports:
+      - "6060:6060"
+    environment:
+      - API_BASE_URL=http://localhost:5050
+      - AUTH_ENABLED=FALSE
+    command:
+      - sh
+      - /usr/share/nginx/start.sh
+
+  backend:
+    build: .
+    networks:
+      - ml-sdk-ttk-net
+    ports:
+      - "5000:5000"
+    environment:
+      - SDK_URL=http://mojaloop-connector-load-test:4001
+    depends_on:
+      - mojaloop-connector-load-test
+    volumes:
+      - .:/app
+
+  mojaloop-connector-load-test:
+    networks:
+      - ml-sdk-ttk-net
+    image: mojaloop/sdk-scheme-adapter:latest
+    env_file: ./mojaloop-connector-load-test.env
+    ports:
+      - "4000:4000"
+      - "4001:4001"
+      - "4002:4002"
+      - "9229:9229"
+    environment:
+      - BACKEND_ENDPOINT=http://backend:5000
+    depends_on:
+      ml-testing-toolkit:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: yarn nx run modules-api-svc:start
+    volumes:
+      - ./secrets:/opt/app/secrets
+    healthcheck:
+      test: [
+        "CMD" , "curl", "-f", "http://localhost:4001"
+      ]
+      timeout: 20s
+      retries: 10
+      start_period: 40s
+      interval: 30s
+
+  redis:
+    networks:
+      - ml-sdk-ttk-net
+    image: "redis:6.2.4-alpine"
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD" ,"sh", "-c", "redis-cli","ping"]
+      timeout: 20s
+      retries: 10
+      start_period: 40s
+      interval: 30s
+
+  # k6:
+  #   image: grafana/k6
+  #   networks:
+  #     - ml-sdk-ttk-net
+  #   depends_on:
+  #     - mojaloop-connector-load-test
+  #   volumes:
+  #     - ./loadtest/k6-load-test-script.js:/scripts/k6-load-test-script.js
+  #   entrypoint: ["k6", "run", "/scripts/k6-load-test-script.js"]

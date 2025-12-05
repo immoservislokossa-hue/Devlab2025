@@ -1,0 +1,135 @@
+{
+  "project_metadata": {
+    "name": "Mojaloop Bulk Transfer Load Tester",
+    "version": "1.0.0",
+    "description": "Solution complète de test de charge et de simulation de transferts de masse (Bulk Transfers) conforme aux spécifications Mojaloop FSPIOP. Conçu pour valider la robustesse des connecteurs et générer des rapports détaillés.",
+    "last_updated": "2025-12-05",
+    "context": "Hackathon Mojaloop / Validation Technique"
+  },
+  "architecture_overview": {
+    "summary": "L'architecture repose sur une approche micro-services orchestrée par Docker Compose. Elle sépare clairement l'interface utilisateur (Frontend), la logique d'orchestration (Backend Python), la passerelle Mojaloop (SDK) et le simulateur de banque (TTK).",
+    "components": [
+      {
+        "name": "Frontend (UI)",
+        "technology": "Next.js 14, React, Tailwind CSS",
+        "role": "Interface utilisateur pour le chargement des fichiers CSV et le téléchargement des rapports.",
+        "features": [
+          "Upload de fichiers CSV",
+          "Barre de progression et gestion des états (loading, success, error)",
+          "Proxy API pour contourner les problèmes CORS avec le backend",
+          "Design responsive et moderne"
+        ]
+      },
+      {
+        "name": "Backend Orchestrator",
+        "technology": "Python 3.9, Flask, Pandas, ReportLab",
+        "role": "Cerveau du système. Il lit les données, gère les lots (batching) et communique avec le SDK.",
+        "key_modules": [
+          "server.py: Serveur HTTP exposant l'API REST (port 5000)",
+          "bulk_transfer_processor.py: Logique métier pour découper les 100k transactions en lots et gérer le flux séquentiel",
+          "Report Generator: Création de rapports PDF (synthèse) et CSV (détails des erreurs) zippés"
+        ]
+      },
+      {
+        "name": "Mojaloop SDK Scheme Adapter",
+        "technology": "Node.js, Mojaloop Standard Components",
+        "role": "Passerelle officielle Mojaloop. Il traduit les appels REST simples du backend en appels FSPIOP complexes (JWS signing, chiffrement, headers spécifiques).",
+        "configuration": {
+          "ports": "4000 (Inbound), 4001 (Outbound)",
+          "mode": "Hybrid (Supporte les réponses synchrones et les callbacks asynchrones)",
+          "storage": "Redis (pour la persistance des états de transaction)"
+        }
+      },
+      {
+        "name": "Mojaloop Testing Toolkit (TTK)",
+        "technology": "Node.js, Docker",
+        "role": "Simulateur de l'écosystème. Il joue le rôle du Switch (Hub) et de la banque destinataire (Payee DFSP).",
+        "optimization": "Configuration mémoire augmentée (--max-old-space-size=4096) pour supporter la charge de 100k transactions."
+      },
+      {
+        "name": "Redis",
+        "technology": "Redis 6.2 Alpine",
+        "role": "Base de données clé-valeur rapide utilisée par le SDK pour stocker les états des requêtes en cours et les corrélations d'ID."
+      }
+    ]
+  },
+  "technical_specifications": {
+    "workflow_logic": {
+      "step_1_ingestion": "Le fichier CSV (jusqu'à 100 000 lignes) est reçu par le backend Flask via l'endpoint /transfer-bulk.",
+      "step_2_validation": "Pandas valide la structure des données (types, champs obligatoires) et sépare les lignes valides des invalides.",
+      "step_3_batching": "Les données valides sont découpées en lots (batches) de 100 ou 1000 transactions pour éviter les timeouts et respecter les limites de payload HTTP.",
+      "step_4_execution_loop": {
+        "description": "Pour chaque lot, le processus suivant est exécuté :",
+        "phase_a_discovery": "Ignorée dans ce test de charge (destinataire hardcodé pour la performance).",
+        "phase_b_agreement": "Envoi d'une requête 'bulkQuotes' au SDK. Le système attend une réponse HTTP 200 (Synchrone) contenant les frais et conditions.",
+        "phase_c_transfer": "Si l'accord est reçu, envoi d'une requête 'bulkTransfers' au SDK pour exécuter le mouvement de fonds.",
+        "hybrid_handling": "Le code gère intelligemment la réponse : si le SDK répond 200 OK, il traite le JSON immédiatement. Si le SDK répond 202 Accepted, il se met en attente du Callback sur les endpoints /bulkQuotes/<id>."
+      },
+      "step_5_reporting": "À la fin de tous les lots, un rapport PDF (statistiques graphiques) et un CSV (liste des échecs) sont générés et compressés en ZIP."
+    },
+    "performance_optimizations": {
+      "memory_management": "Utilisation de 'NODE_OPTIONS=--max-old-space-size=4096' pour le TTK afin d'éviter les crashs 'Heap out of memory'.",
+      "batch_sizing": "Taille des lots ajustée dynamiquement (100 transactions par défaut) pour un équilibre optimal entre débit et stabilité.",
+      "synchronous_priority": "Préférence pour les réponses synchrones du SDK pour réduire la latence réseau et la complexité des callbacks."
+    }
+  },
+  "deployment_guide": {
+    "environment": "Docker & Docker Compose",
+    "prerequisites": [
+      "Docker Engine",
+      "Docker Compose",
+      "4GB RAM minimum (recommandé 8GB pour 100k transactions)"
+    ],
+    "commands": {
+      "start": "docker-compose up -d --build",
+      "stop": "docker-compose down",
+      "logs": "docker-compose logs -f",
+      "test_local": "python test_vm.py"
+    },
+    "network_configuration": {
+      "backend_port": "5000 (API)",
+      "frontend_port": "3000 (UI)",
+      "sdk_outbound": "4001",
+      "ttk_ui": "6060"
+    }
+  },
+  "troubleshooting_faq": {
+    "error_payload_too_large": {
+      "symptom": "Erreur HTTP 413 ou 400 lors de l'envoi au SDK.",
+      "cause": "Le lot envoyé dépasse la taille maximale autorisée par le schéma JSON Mojaloop.",
+      "solution": "Réduire la taille du lot (transfers_per_bulk) à 100 ou 1000 dans server.py."
+    },
+    "error_heap_out_of_memory": {
+      "symptom": "Le conteneur TTK redémarre en boucle ou crash pendant le test.",
+      "cause": "Node.js atteint sa limite de mémoire par défaut (512MB) lors du traitement de gros volumes.",
+      "solution": "Ajouter la variable d'environnement NODE_OPTIONS=--max-old-space-size=4096 dans docker-compose.yml."
+    },
+    "error_connection_refused": {
+      "symptom": "Le frontend n'arrive pas à contacter le backend.",
+      "cause": "Le backend n'est pas encore prêt ou l'IP est incorrecte.",
+      "solution": "Vérifier les logs backend et s'assurer que le port 5000 est bien exposé et accessible."
+    }
+  },
+  "file_structure": {
+    "root": {
+      "server.py": "Point d'entrée Backend Flask.",
+      "bulk_transfer_processor.py": "Logique de traitement par lots.",
+      "docker-compose.yml": "Définition de l'infrastructure.",
+      "mojaloop-connector-load-test.env": "Variables d'environnement SDK.",
+      "frontend/": "Dossier du projet Next.js.",
+      "resources/": "Dossier contenant les fichiers CSV de test.",
+      "configs/": "Fichiers de configuration JSON pour le TTK (règles, utilisateurs)."
+    }
+  },
+  "chatbot_integration": {
+    "feature_name": "Chatbot Command Interface",
+    "description": "Capacité pour un agent conversationnel externe d'initier des tests de charge en envoyant directement un fichier CSV.",
+    "technical_flow": {
+      "trigger": "Upload de fichier CSV via le Chatbot",
+      "action": "Le Chatbot effectue un POST multipart/form-data vers le Backend",
+      "endpoint": "POST /transfer-bulk",
+      "response_handling": "Le Chatbot reçoit le flux binaire (ZIP), le sauvegarde temporairement et le présente à l'utilisateur."
+    },
+    "use_case": "Permet de lancer des tests rapides depuis une interface de messagerie (Slack, Teams, Custom Web Chat) sans passer par le Frontend Next.js."
+  }
+}

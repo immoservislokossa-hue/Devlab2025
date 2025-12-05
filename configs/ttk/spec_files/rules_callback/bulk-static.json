@@ -1,0 +1,90 @@
+[
+  {
+    "type": "callback",
+    "version": 1,
+    "ruleId": 100,
+    "priority": 10,
+    "description": "POST /bulkQuotes - FIXED RESPONSE for 2 quotes",
+    "apiVersion": {
+      "minorVersion": 1,
+      "majorVersion": 1,
+      "type": "fspiop",
+      "asynchronous": true
+    },
+    "conditions": {
+      "all": [
+        {
+          "fact": "operationPath",
+          "operator": "equal",
+          "value": "/bulkQuotes"
+        },
+        {
+          "fact": "method",
+          "operator": "equal",
+          "value": "post"
+        }
+      ]
+    },
+    "event": {
+      "method": "put",
+      "path": "/bulkQuotes/{$request.body.bulkQuoteId}",
+      "params": {
+        "headers": {
+          "Content-Type": "application/vnd.interoperability.bulkQuotes+json;version=1.1",
+          "Date": "{$function.generic.curDate}",
+          "FSPIOP-Source": "{$config.FSPID}",
+          "FSPIOP-Destination": "{$request.headers.fspiop-source}"
+        },
+        "body": {
+          "expiration": "2040-12-31T23:59:59.999Z",
+          "individualQuoteResults": [
+            {
+              "quoteId": "{$request.body.individualQuotes[0].quoteId}",
+              "transferAmount": {
+                "currency": "{$request.body.individualQuotes[0].currency}",
+                "amount": "{$request.body.individualQuotes[0].amount}"
+              },
+              "payeeReceiveAmount": {
+                "currency": "{$request.body.individualQuotes[0].currency}",
+                "amount": "{$request.body.individualQuotes[0].amount}"
+              },
+              "payeeFspFee": {
+                "currency": "{$request.body.individualQuotes[0].currency}",
+                "amount": "0"
+              },
+              "payeeFspCommission": {
+                "currency": "{$request.body.individualQuotes[0].currency}",
+                "amount": "0"
+              },
+              "ilpPacket": "AYIBgQAAAAAAAASwNGxldmVsb25lLmRmc3AxLm1lci45T2RTOF81MDdqUUZERmZlakgy",
+              "condition": "f5sqb7tBTWPd5Y8BDFdMm9BJR_MNI4isf8p8n4D5pHA"
+            },
+            {
+              "quoteId": "{$request.body.individualQuotes[1].quoteId}",
+              "transferAmount": {
+                "currency": "{$request.body.individualQuotes[1].currency}",
+                "amount": "{$request.body.individualQuotes[1].amount}"
+              },
+              "payeeReceiveAmount": {
+                "currency": "{$request.body.individualQuotes[1].currency}",
+                "amount": "{$request.body.individualQuotes[1].amount}"
+              },
+              "payeeFspFee": {
+                "currency": "{$request.body.individualQuotes[1].currency}",
+                "amount": "0"
+              },
+              "payeeFspCommission": {
+                "currency": "{$request.body.individualQuotes[1].currency}",
+                "amount": "0"
+              },
+              "ilpPacket": "AYIBgQAAAAAAAASwNGxldmVsb25lLmRmc3AxLm1lci45T2RTOF81MDdqUUZERmZlakgy",
+              "condition": "f5sqb7tBTWPd5Y8BDFdMm9BJR_MNI4isf8p8n4D5pHA"
+            }
+          ]
+        }
+      },
+      "delay": 0,
+      "type": "FIXED_CALLBACK"
+    }
+  }
+]

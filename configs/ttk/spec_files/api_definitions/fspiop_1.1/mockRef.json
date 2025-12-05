@@ -1,0 +1,106 @@
+[
+  {
+    "id": "party.personalInfo.complexName.firstName",
+    "pattern": "John|David|Michael|Chris|Mike|Mark|Paul|Daniel|James|Maria"
+  },
+  {
+    "id": "party.personalInfo.complexName.middleName",
+    "pattern": "G|P|N|S"
+  },
+  {
+    "id": "party.personalInfo.complexName.lastName",
+    "pattern": "Smith|Jones|Johnson|Lee|Brown|Williams|Rodriguez|Garcia|Gonzalez|Lopez"
+  },
+  {
+    "id": "party.personalInfo.dateOfBirth",
+    "pattern": "^(19)\\d\\d[-](0[1-9]|1[012])[-](0[1-9]|[12][0-9]|2[0-8])$"
+  },
+  {
+    "id": "transferId",
+    "faker": "random.uuid"
+  },
+  {
+    "id": "quoteId",
+    "faker": "random.uuid"
+  },
+  {
+    "id": "transactionId",
+    "faker": "random.uuid"
+  },
+  {
+    "id": "transferState",
+    "pattern": "COMMITTED|RESERVED|ABORTED|RECEIVED"
+  },
+  {
+    "id": "fulfilment",
+    "pattern": "[A-Fa-f0-9]{64}"
+  },
+  {
+    "id": "condition",
+    "pattern": "[A-Za-z0-9_-]{43}"
+  },
+  {
+    "id": "ilpPacket",
+    "pattern": "[A-Za-z0-9_=-]{100,1000}"
+  },
+  {
+    "id": "transferAmount.currency",
+    "pattern": "USD|XOF|EUR"
+  },
+  {
+    "id": "transferAmount.amount",
+    "pattern": "123|1000|1500|2000"
+  },
+  {
+    "id": "payeeReceiveAmount.currency",
+    "pattern": "USD|XOF|EUR"
+  },
+  {
+    "id": "payeeReceiveAmount.amount",
+    "pattern": "123|1000|1500|2000"
+  },
+  {
+    "id": "payeeFspFee.currency",
+    "pattern": "USD|XOF|EUR"
+  },
+  {
+    "id": "payeeFspFee.amount",
+    "pattern": "0|2|5|10"
+  },
+  {
+    "id": "payeeFspCommission.currency",
+    "pattern": "USD|XOF|EUR"
+  },
+  {
+    "id": "payeeFspCommission.amount",
+    "pattern": "0|3|5|10"
+  },
+  {
+    "id": "errorInformation.errorCode",
+    "pattern": "600[1-9]|3100|5000"
+  },
+  {
+    "id": "errorInformation.errorDescription",
+    "pattern": "This is a mock error description"
+  },
+  {
+    "id": "Content-Length",
+    "pattern": "123"
+  },
+  {
+    "id": "bulkQuoteId",
+    "faker": "random.uuid"
+  },
+  {
+    "id": "bulkTransferId",
+    "faker": "random.uuid"
+  },
+  {
+    "id": "bulkTransferState",
+    "pattern": "COMMITTED|PROCESSING|COMPLETED"
+  },
+  {
+    "id": "homeTransactionId",
+    "faker": "random.uuid"
+  }
+]
