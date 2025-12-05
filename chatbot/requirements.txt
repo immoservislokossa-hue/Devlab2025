@@ -1,0 +1,5 @@
+colorama
+google-generativeai
+requests
+flask
+flask-cors
