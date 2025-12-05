@@ -40,7 +40,7 @@ export default function DashboardHome() {
         </Link>
 
         <Link
-          href="/dashboard/historique"
+          href="/dashboard/history"
           className="px-8 py-4 bg-gray-900 text-white rounded-2xl shadow-md hover:bg-black transition"
         >
           Voir l’historique
