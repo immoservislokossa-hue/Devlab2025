@@ -1,258 +1,136 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
-import { 
-  LogOut, 
-  UserCircle, 
-  Mail, 
-  Briefcase, 
-  Phone, 
-  Calendar,
-  Wallet,
-  TrendingUp,
-  Banknote,
-  ChevronRight
-} from 'lucide-react'
+import { useEffect, useState } from "react";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { Wallet, TrendingUp } from "lucide-react";
 
-const supabase = createClient(
+const supabase: SupabaseClient = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+);
 
-export default function PensionPage() {
-  const [userInfo, setUserInfo] = useState<any>(null)
-  const [paiements, setPaiements] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const router = useRouter()
+type Transaction = {
+  retraite_id: string;
+  numero: number | null;
+  user_id: string;
+  identifiant_partie: string | null;
+  Valide: boolean | null;
+  transfer_id: string | null;
+  payee_id_value: string | null;
+  amount: number | null;
+  transfer_date: string | null;
+};
+
+export default function DashboardTransactions() {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchTransactions = async () => {
+    setLoading(true);
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user?.user) return;
+
+      const userId = user.user.id;
+
+      // Requête sur la vue retraites_transactions
+      const { data, error } = await supabase
+        .from("retraites_transactions")
+        .select("*")
+        .eq("user_id", userId);
+
+      if (error) console.error("Erreur Supabase:", error);
+      else setTransactions(data as Transaction[]);
+    } catch (err) {
+      console.error("Erreur fetchTransactions:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    chargerDonnees()
-  }, [])
+    fetchTransactions();
+  }, []);
 
-  const chargerDonnees = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!user) {
-      router.push('/login')
-      return
-    }
+  const totalAmount = transactions.reduce(
+    (acc, tx) => acc + (tx.amount ?? 0),
+    0
+  );
+  const totalTransactions = transactions.length;
 
-    try {
-      // Récupérer infos de auth.users
-      const nomComplet = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Utilisateur'
-      const [nom, prenom] = nomComplet.split(' ')
-
-      // Récupérer infos de retraites
-      const { data: profilRetraite } = await supabase
-        .from('retraites')
-        .select('travail, numero_telephone, created_at')
-        .eq('user_id', user.id)
-        .single()
-
-      setUserInfo({
-        nom,
-        prenom,
-        email: user.email,
-        ...profilRetraite
-      })
-
-      // Charger paiements
-      const { data: paiementsData } = await supabase
-        .from('historique')
-        .select('*')
-        .eq('user_id', user.id)
-        .gte('montant', 0)
-        .order('date_action', { ascending: false })
-
-      setPaiements(paiementsData || [])
-
-    } catch (error) {
-      console.error('Erreur:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const getSalutation = () => {
-    const heure = new Date().getHours()
-    if (heure < 12) return 'Bonjour'
-    if (heure < 18) return 'Bon après-midi'
-    return 'Bonsoir'
-  }
-
-  const getTotalPensions = () => {
-    return paiements.reduce((total, p) => total + (p.montant || 0), 0)
-  }
-
-  const deconnexion = async () => {
-    await supabase.auth.signOut()
-    router.push('/login')
-  }
-
-  if (loading) {
+  if (loading)
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4 text-blue-600">Chargement...</p>
-        </div>
+      <div className="flex items-center justify-center h-screen text-blue-600 text-xl font-bold">
+        Chargement...
       </div>
-    )
-  }
+    );
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
-      {/* Header élégant */}
-      <div className="relative bg-blue-700 text-white overflow-hidden">
-        <div className="absolute inset-0 bg-black/10"></div>
-        <div className="relative max-w-4xl mx-auto px-4 py-8">
-          <div className="flex justify-between items-start">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="bg-white/20 p-2 rounded-full">
-                  <Wallet className="w-6 h-6" />
-                </div>
-                <h1 className="text-2xl font-bold">Portail Pension</h1>
-              </div>
-              <p className="text-blue-100">
-                {getSalutation()}, <span className="font-semibold">{userInfo?.prenom || userInfo?.nom}</span> 👋
-              </p>
-            </div>
-            <button
-              onClick={deconnexion}
-              className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors"
-              title="Déconnexion"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
+    <div className="p-6 bg-gradient-to-br from-blue-50 to-white min-h-screen">
+      <h1 className="text-3xl font-bold text-blue-600 mb-6">
+        Dashboard Transactions
+      </h1>
+
+      {/* Cartes résumé */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+        <div className="bg-white rounded-xl shadow-lg p-5 border-l-4 border-blue-600 flex items-center space-x-4 hover:scale-105 transition-transform">
+          <Wallet className="text-blue-600 w-8 h-8" />
+          <div>
+            <p className="text-sm text-gray-500">Total Transactions</p>
+            <p className="text-2xl font-bold text-blue-600">{totalTransactions}</p>
           </div>
         </div>
-      </div>
-
-      <div className="max-w-4xl mx-auto px-4 py-8 -mt-6">
-        {/* Carte profil */}
-        {userInfo && (
-          <div className="bg-white rounded-2xl shadow-lg border mb-8 transform transition-all hover:shadow-xl">
-            <div className="p-6">
-              
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-blue-50 p-4 rounded-xl">
-                  <div className="flex items-center gap-2 text-blue-700 mb-1">
-                    <Mail className="w-4 h-4" />
-                    <span className="text-sm font-medium">Email</span>
-                  </div>
-                  <p className="text-gray-900 truncate">{userInfo.email}</p>
-                </div>
-
-                <div className="bg-green-50 p-4 rounded-xl">
-                  <div className="flex items-center gap-2 text-green-700 mb-1">
-                    <Phone className="w-4 h-4" />
-                    <span className="text-sm font-medium">Téléphone</span>
-                  </div>
-                  <p className="text-gray-900">{userInfo.numero_telephone}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Carte total pensions */}
-        <div className="bg-green-600 text-white rounded-2xl p-6 shadow-xl mb-8 transform hover:scale-[1.02] transition-transform">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-sm font-medium text-green-100 mb-2">VOTRE CAPITAL RETRAITE</p>
-              <p className="text-4xl font-bold mb-1">{getTotalPensions().toFixed(2)} F CFA</p>
-              <div className="flex items-center gap-2 text-green-100 text-sm">
-                <TrendingUp className="w-4 h-4" />
-                <span>{paiements.length} versement{paiements.length > 1 ? 's' : ''} reçu{paiements.length > 1 ? 's' : ''}</span>
-              </div>
-            </div>
-             
-          </div>
-        </div>
-
-        {/* Historique */}
-        <div className="bg-white rounded-2xl shadow-lg border overflow-hidden">
-          <div className="px-6 py-5 border-b">
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Historique des versements</h3>
-                <p className="text-gray-600 text-sm">Pensions reçues de l'État</p>
-              </div>
-              
-            </div>
-          </div>
-
-          {paiements.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-20 h-20 bg-gradient-to-br from-blue-50 to-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Banknote className="w-10 h-10 text-gray-400" />
-              </div>
-              <h4 className="font-medium text-gray-900 mb-2">Aucun versement</h4>
-              <p className="text-gray-600">Les pensions apparaîtront ici</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {paiements.map((paiement, index) => (
-                <div 
-                  key={paiement.id} 
-                  className="px-6 py-5 hover:bg-gray-50 transition-colors group"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className={`p-3 rounded-xl ${
-                        index === 0 
-                          ? 'bg-gradient-to-br from-green-500 to-emerald-600 text-white' 
-                          : 'bg-gradient-to-br from-blue-50 to-blue-100 text-blue-600'
-                      }`}>
-                      
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-gray-900">{paiement.action}</h4>
-                        <div className="flex items-center gap-3 mt-2">
-                          <span className="flex items-center gap-1 text-sm text-gray-500">
-                            <Calendar className="w-4 h-4" />
-                            {new Date(paiement.date_action).toLocaleDateString('fr-FR', {
-                              day: 'numeric',
-                              month: 'long',
-                              year: 'numeric'
-                            })}
-                          </span>
-                          {index === 0 && (
-                            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium">
-                              Dernier
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-2xl font-bold text-green-600">
-                        +{paiement.montant?.toFixed(2)} €
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Informations */}
-        <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-100">
-          <div className="text-center">
-            <p className="text-gray-700">
-              <span className="font-semibold">Service sécurisé</span> • 
-              Paiements garantis par l'État • 
-              Contact: 0800 123 456
+        <div className="bg-white rounded-xl shadow-lg p-5 border-l-4 border-blue-600 flex items-center space-x-4 hover:scale-105 transition-transform">
+          <TrendingUp className="text-blue-600 w-8 h-8" />
+          <div>
+            <p className="text-sm text-gray-500">Total Amount</p>
+            <p className="text-2xl font-bold text-blue-600">
+              {totalAmount.toFixed(2)} €
             </p>
           </div>
         </div>
+        
       </div>
+
+      {/* Tableau ou message vide */}
+      {totalTransactions === 0 ? (
+        <div className="flex flex-col items-center justify-center mt-20 text-center text-blue-600 space-y-4">
+          <div className="text-6xl">💸</div>
+          <p className="text-xl font-semibold">Aucune transaction pour le moment</p>
+          <p className="text-gray-500">Commencez à effectuer des transactions pour les voir ici.</p>
+        </div>
+      ) : (
+        <div className="bg-white shadow rounded-xl overflow-x-auto">
+          <table className="min-w-full divide-y divide-blue-200">
+            <thead className="bg-blue-100">
+              <tr>
+                <th className="px-6 py-3 text-left text-blue-600 font-medium text-sm">Retraite ID</th>
+                <th className="px-6 py-3 text-left text-blue-600 font-medium text-sm">Numéro</th>
+                <th className="px-6 py-3 text-left text-blue-600 font-medium text-sm">Transfer ID</th>
+                <th className="px-6 py-3 text-left text-blue-600 font-medium text-sm">Payee ID</th>
+                <th className="px-6 py-3 text-left text-blue-600 font-medium text-sm">Montant</th>
+                <th className="px-6 py-3 text-left text-blue-600 font-medium text-sm">Date</th>
+                <th className="px-6 py-3 text-left text-blue-600 font-medium text-sm">Valide</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-blue-200">
+              {transactions.map((tx) => (
+                <tr key={tx.retraite_id + (tx.transfer_id ?? "null")} className="hover:bg-blue-50">
+                  <td className="px-6 py-3">{tx.retraite_id}</td>
+                  <td className="px-6 py-3">{tx.numero ?? "-"}</td>
+                  <td className="px-6 py-3">{tx.transfer_id ?? "-"}</td>
+                  <td className="px-6 py-3">{tx.payee_id_value ?? "-"}</td>
+                  <td className="px-6 py-3">{tx.amount !== null ? tx.amount.toFixed(2) + " €" : "-"}</td>
+                  <td className="px-6 py-3">
+                    {tx.transfer_date ? new Date(tx.transfer_date).toLocaleString() : "-"}
+                  </td>
+                  <td className="px-6 py-3">{tx.Valide ? "Oui" : "Non"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
-  )
+  );
 }
